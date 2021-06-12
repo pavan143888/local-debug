@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Parameters:
+    AppEnvironment:
+        Default: "dev"
+        Description: "Application environment (dev, qa, prod)"
+        Type: String
+Resources:
+    LambdaExecutionRole:
+        Type: AWS::IAM::Role
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                    -   Effect: Allow
+                        Principal:
+                            Service:
+                                - lambda.amazonaws.com
+                        Action:
+                            - sts:AssumeRole
+            Policies:
+                -   PolicyName: allowLambdaLogs
+                    PolicyDocument:
+                        Version: '2012-10-17'
+                        Statement:
+                            -   Effect: Allow
+                                Action:
+                                    - logs:*
+                                Resource: arn:aws:logs:*:*:*
+                -   PolicyName: allowSqs
+                    PolicyDocument:
+                        Version: '2012-10-17'
+                        Statement:
+                            -   Effect: Allow
+                                Action:
+                                    - sqs:ReceiveMessage
+                                    - sqs:DeleteMessage
+                                    - sqs:GetQueueAttributes
+                                    - sqs:ChangeMessageVisibility
+                                Resource: !GetAtt MyQueue.Arn
+                -   PolicyName: allowCodeBuildToStart
+                    PolicyDocument:
+                        Version: '2012-10-17'
+                        Statement:
+                              -   Effect: Allow
+                                  Action:
+                                     - codebuild:StartBuild
+                                  Resource: '*'
+                -   PolicyName: ssmGetAll
+                    PolicyDocument:
+                            Version: '2012-10-17'
+                            Statement:
+                                -   Effect: Allow
+                                    Action:
+                                        - ssm:*
+                                    Resource: '*'
+    LambdaFunction:
+        Type: 'AWS::Serverless::Function'
+        Properties:
+            FunctionName: !Sub local-debug-webhook-builder-${AppEnvironment}
+            Handler: index.handler
+            Role: !GetAtt LambdaExecutionRole.Arn
+            Runtime: nodejs14.x
+            CodeUri: ../dist.zip
+            MemorySize: 192
+            Timeout: 30
+            AutoPublishAlias: BLUEGREEN
+            DeploymentPreference:
+                Type: Canary10Percent5Minutes
+            Policies:
+                - Version: '2012-10-17'
+                  Statement:
+                      - Effect: Allow
+                        Action:
+                            - "logs:CreateLogGroup"
+                            - "logs:CreateLogStream"
+                            - "logs:PutLogEvents"
+                            - "ssm:DescribeParameters"
+                            - "ssm:PutParameter"
+                            - "ssm:GetParameterHistory"
+                            - "ssm:GetParametersByPath"
+                            - "ssm:GetParameters"
+                            - "ssm:GetParameter"
+                        Resource: '*'
+    MyQueue:
+        Type: AWS::SQS::Queue
+        Properties:
+            QueueName: !Sub local-debug-webhook-queue-${AppEnvironment}
+            DelaySeconds: 0
+            VisibilityTimeout: 120
+    LambdaFunctionEventSourceMapping:
+        Type: AWS::Lambda::EventSourceMapping
+        Properties:
+            BatchSize: 10
+            Enabled: true
+            EventSourceArn: !GetAtt MyQueue.Arn
+            FunctionName: !GetAtt LambdaFunction.Arn
+
+Outputs:
+    QueueUrl:
+        Value: !Ref MyQueue
+        Export:
+            Name: !Sub "${AWS::StackName}-QueueUrl"

@@ -1,0 +1,20 @@
+{
+    "name": "proxy",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "tsc": "tsc --build",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "dependencies": {
+        "aws-sdk": "^2.814.0",
+        "aws-xray-sdk": "^2.5.0",
+        "reflect-metadata": "^0.1.13"
+    },
+    "devDependencies": {
+        "@types/aws-lambda": "^8.10.13",
+        "@types/node": "^13.9.0",
+        "typescript": "^3.8.3"
+    }
+}

@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+    AppEnvironment:
+        Default: "dev"
+        Description: "Application environment (dev, qa, prod)"
+        Type: String
+Resources:
+    S3Bucket:
+        Type: AWS::S3::Bucket
+        Properties:
+            BucketName: !Sub local-debug-${AppEnvironment}-bucket
+            PublicAccessBlockConfiguration:
+                RestrictPublicBuckets: true
+                BlockPublicAcls: true
+                BlockPublicPolicy: false
+                IgnorePublicAcls: false
+            AccessControl: Private
+
+    SampleBucketPolicy:
+        Type: 'AWS::S3::BucketPolicy'
+        Properties:
+            Bucket: !Ref S3Bucket
+            PolicyDocument:
+                Statement:
+                    -   Action:
+                            - 's3:GetObject'
+                            - 's3:PutObject'
+                        Effect: Allow
+                        Resource: !Join
+                            - ''
+                            -   - 'arn:aws:s3:::'
+                                - !Ref S3Bucket
+                                - /*
+                        Principal: '*'

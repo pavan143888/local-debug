@@ -1,0 +1,64 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Parameters:
+  Password:
+    Type: String
+    Description: User Password
+Resources:
+  ApiGatewayRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Principal:
+              Service: apigateway.amazonaws.com
+      Path: "/"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonApiGatewayPushToCloudWatchLogs
+  ApiGatewayAccount:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn: !GetAtt ApiGatewayRole.Arn
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    DependsOn:
+      - ApiGatewayAccount
+    Properties:
+      StageName: !Sub ${AppEnvironment}
+      Name: !Sub local-debug-${AppEnvironment}
+      Cors:
+        AllowMethods: "'*'"
+        AllowHeaders: "'*'"
+        AllowOrigin: "'*'"
+  LambdaFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: !Sub local-debug-${AppEnvironment}
+      Runtime: nodejs10.x
+      Handler: dist/index.handler
+      CodeUri: ../dist
+      MemorySize: 128
+      Timeout: 3
+      Role: !GetAtt LambdaWorkerRole.Arn
+      AutoPublishAlias: BLUEGREEN
+      DeploymentPreference:
+        Type: Canary10Percent5Minutes
+      Environment:
+        Variables:
+          PASSWORD: !Ref Password
+      Events:
+        Post:
+          Type: Api
+          Properties:
+            Path: /localDebug
+            Method: ANY
+            RestApiId:
+              Ref: ApiGateway
+Outputs:
+  Url:
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${AppEnvironment}/localDebug"
+    Export:
+      Name: !Sub ${AWS::StackName}-url

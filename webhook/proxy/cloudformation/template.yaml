@@ -1,0 +1,81 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Parameters:
+    AppEnvironment:
+        Default: "prod"
+        Description: "Application environment (dev, qa, prod)"
+        Type: String
+Resources:
+    ApiGatewayRole:
+        Type: AWS::IAM::Role
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: 2012-10-17
+                Statement:
+                    - Effect: Allow
+                      Action: sts:AssumeRole
+                      Principal:
+                          Service: apigateway.amazonaws.com
+            Path: "/"
+            ManagedPolicyArns:
+                - arn:aws:iam::aws:policy/service-role/AmazonApiGatewayPushToCloudWatchLogs
+    ApiGatewayAccount:
+        Type: AWS::ApiGateway::Account
+        Properties:
+            CloudWatchRoleArn: !GetAtt ApiGatewayRole.Arn
+    ApiGateway:
+        Type: AWS::Serverless::Api
+        DependsOn:
+            - ApiGatewayAccount
+        Properties:
+            StageName: !Sub ${AppEnvironment}
+            Name: !Sub local-debug-webhook-proxy-${AppEnvironment}
+            Cors:
+                AllowMethods: "'*'"
+                AllowHeaders: "'*'"
+                AllowOrigin: "'*'"
+    LambdaFunction:
+        Type: 'AWS::Serverless::Function'
+        Properties:
+            FunctionName: !Sub local-debug-webhook-proxy-${AppEnvironment}
+            Handler: index.handler
+            Runtime: nodejs14.x
+            CodeUri: ../dist
+            MemorySize: 192
+            Timeout: 30
+            AutoPublishAlias: BLUEGREEN
+            DeploymentPreference:
+                Type: Canary10Percent5Minutes
+            Environment:
+                Variables:
+                    QueueURL:
+                        Fn::ImportValue: !Sub local-debug-webhook-builder-${AppEnvironment}-deploy-QueueUrl
+            Policies:
+                - Version: '2012-10-17'
+                  Statement:
+                      - Effect: Allow
+                        Action:
+                            - "logs:CreateLogGroup"
+                            - "logs:CreateLogStream"
+                            - "logs:PutLogEvents"
+                            - "ssm:DescribeParameters"
+                            - "ssm:PutParameter"
+                            - "ssm:GetParameterHistory"
+                            - "ssm:GetParametersByPath"
+                            - "ssm:GetParameters"
+                            - "ssm:GetParameter"
+                            - "sqs:SendMessage"
+                        Resource: '*'
+            Events:
+                Post:
+                    Type: Api
+                    Properties:
+                        Path: /proxy
+                        Method: ANY
+                        RestApiId:
+                            Ref: ApiGateway
+Outputs:
+    Url:
+        Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${AppEnvironment}/proxy"
+        Export:
+            Name: !Sub ${AWS::StackName}-url

@@ -1,0 +1,18 @@
+{
+  "name": "localdebug",
+  "version": "1.0.0",
+  "description": "Testing local debug",
+  "main": "index.js",
+  "scripts": {
+    "tsc": "tsc --build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/aws-lambda": "^8.10.64",
+    "@types/node": "^13.9.0",
+    "aws-lambda": "^1.0.6",
+    "typescript": "^3.8.3"
+  }
+}

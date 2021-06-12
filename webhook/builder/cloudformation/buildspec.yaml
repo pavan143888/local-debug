@@ -1,0 +1,20 @@
+version: 0.2
+
+phases:
+    install:
+        runtime-versions:
+            nodejs: 14
+        commands:
+            - chmod +x webhook/builder/bin/compile.sh
+            - chmod +x webhook/builder/bin/env_generator.sh
+            - chmod +x webhook/builder/bin/deploy.sh
+    pre_build:
+        commands:
+            - cd webhook/builder
+            - ./bin/env_generator.sh
+    build:
+        commands:
+            - ./bin/compile.sh
+    post_build:
+        commands:
+            - ./bin/deploy.sh

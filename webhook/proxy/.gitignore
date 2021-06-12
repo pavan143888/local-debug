@@ -1,0 +1,5 @@
+../Builder/.idea
+package-lock.json
+node_modules
+dist
+webhook-proxy-template-packaged.yaml
