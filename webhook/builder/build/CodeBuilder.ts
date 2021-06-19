@@ -103,7 +103,7 @@ export class CodeBuilder {
                 type: 'NO_CACHE',
             },
             idempotencyToken,
-            sourceVersion,
+            sourceVersion
         };
         return  codebuild.startBuild(params).promise();
     }
