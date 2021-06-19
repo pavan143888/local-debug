@@ -64,9 +64,6 @@ Resources:
             CodeUri: ../dist.zip
             MemorySize: 192
             Timeout: 30
-            AutoPublishAlias: BLUEGREEN
-            DeploymentPreference:
-                Type: Canary10Percent5Minutes
             Policies:
                 - Version: '2012-10-17'
                   Statement:
