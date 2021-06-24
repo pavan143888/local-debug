@@ -11,7 +11,7 @@ phases:
     pre_build:
         commands:
             - cd src/local-debug
-            - ./bin/env_generator.sh
+            - ../../webhook/builder/bin/env_generator.sh
     build:
         commands:
             - ./bin/compile.sh
