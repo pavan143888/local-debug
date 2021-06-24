@@ -3,6 +3,7 @@ import { APIGatewayRequest, APIGatewayResponse } from "./APIGateway";
 
 exports.handler = async (event: APIGatewayRequest) => {
     try {
+        console.log("Event" +JSON.stringify(event));
         const processor = new EventProcessor();
         const response: APIGatewayResponse = await processor.run(event);
         return Promise.resolve(response);
